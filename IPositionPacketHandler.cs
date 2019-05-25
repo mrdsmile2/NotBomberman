@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public interface IClientPositionable 
+public interface IPositionPacketHandler 
 {
     void OnPositionPacketReceived(float x, float y, float z);
 }
