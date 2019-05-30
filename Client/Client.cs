@@ -162,6 +162,13 @@ public class Client : MonoBehaviour
         return false;
     }
 
+    public void UnregisterObject(int id)
+    {
+        if(positionableObj.ContainsKey(id)) positionableObj.Remove(id);
+        if(countdownableObj.ContainsKey(id)) countdownableObj.Remove(id);
+        if(destroyableObj.ContainsKey(id)) destroyableObj.Remove(id);
+    }
+
     private void ProcessSpawnPacket()
     {
         if (receivedData.Length != 22)

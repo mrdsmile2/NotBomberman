@@ -1,6 +1,6 @@
 import pygame
-from ServerCollisionsDetection.Circle import Circle
-from ServerCollisionsDetection.CollisionMng import CollisionMng
+from CollisionsDetection.Circle import Circle
+from CollisionsDetection.CollisionMng import CollisionMng
 
 
 class GameObject:

@@ -1,5 +1,5 @@
 from GameObject import GameObject
-from ServerCollisionsDetection.CollisionMng import CollisionMng
+from CollisionMng import CollisionMng
 
 def clear_collision_mng():
     CollisionMng.go_list.clear()
