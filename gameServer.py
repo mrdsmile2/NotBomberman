@@ -52,6 +52,7 @@ class GameServer:
         self.commands_table[COMMAND_ALIVE] = self.alive
         self.players = {}
         self.bombs = []
+        self.bombs_explosions = {}
         self.next_wait = HZ
         self.send_all_queue = []
         self.send_target = []
@@ -63,6 +64,7 @@ class GameServer:
         self.packet_arrived = {} #Keys IDPACKET_ARRIVED - Values MY_ACK
         self.delete_packet_arrived = []
         GameBomb.server = self
+        GamePlayer.server = self
         print('Server started!')
 
     def ClearDeadPlayer(self, who):
@@ -81,9 +83,16 @@ class GameServer:
         del(self.players[who])
 
     def tick_players(self, now):
+
+        # send enqueued packets to all clients
+        for packet in self.send_all_queue:
+            for player in self.players.values():
+                self.socket.sendto(packet.getData(), player.address)
+        self.send_all_queue = []
+
         dead_clients = []
         for player in self.players.values():
-            if now - player.last_packet_timestamp > 20:
+            if now - player.last_packet_timestamp > 20 or player.is_alive == False:
                 dead_clients.append(player.address)
             else:
                 player.tick()
@@ -92,13 +101,6 @@ class GameServer:
             print('{} ({}) is dead'.format(self.players[dead_client].name, dead_client))
             #del(self.players[dead_client])
             self.ClearDeadPlayer(dead_client)
-            
-    
-        # send enqueued packets to all clients
-        for packet in self.send_all_queue:
-            for player in self.players.values():
-                self.socket.sendto(packet.getData(), player.address)
-        self.send_all_queue = []
 
     def tick_server(self):
         #wait when join all player need refactoring
@@ -111,6 +113,7 @@ class GameServer:
 
     def tick_bomb(self):
         dead_bombs = []
+        dead_explosion_bomb = []
         for bomb in self.bombs:
             if bomb.dead == True:
                 dead_bombs.append(bomb)
@@ -120,6 +123,17 @@ class GameServer:
         for dead_bomb in dead_bombs:
             if dead_bomb in self.bombs:
                 self.bombs.remove(dead_bomb)
+
+        for id_bomb, explosion_bomb in self.bombs_explosions.items():
+            explosion_bomb.tick(self.deltaTime/2)
+            if explosion_bomb.is_alive == False:
+                dead_explosion_bomb.append(id_bomb)
+            print("Tick Explosion Bomb {}".format(id_bomb))
+
+        for dead_bomb_explosion_id in dead_explosion_bomb:
+            if dead_bomb_explosion_id in self.bombs_explosions:
+                del(self.bombs_explosions[dead_bomb_explosion_id])
+            
 
     def tick(self):
         before = time.perf_counter()
@@ -132,8 +146,8 @@ class GameServer:
         if self.socket not in rlist or self.next_wait <= 0:
             self.tick_players(time.perf_counter())
             self.tick_bomb()
-            self.tick_server()
             CollisionMng.update()
+            self.tick_server()
             self.next_wait = HZ
 
         if self.socket not in rlist:
@@ -241,7 +255,6 @@ class GameServer:
                 x = self.start_position[index][0]
                 y = self.start_position[index][1]
                 z = self.start_position[index][2]
-                print(x,y,z)
                 return [x,y,z]
 
 
@@ -277,10 +290,10 @@ class GameServer:
         player = GamePlayer(name, self.sender, start_pos[0], start_pos[1], start_pos[2])
         player.color_player = color
 
-        spawn_player = Packet(False, self.sender, "=BIfffB{}s".format(len(player.name)), COMMAND_SPAWN_PLAYER, player.id, start_pos[0],start_pos[1],start_pos[2], player.color_player, player.name.encode())
+        spawn_player = Packet(False, self.sender, "=BIfffB{}s".format(len(player.name)), COMMAND_SPAWN_PLAYER, player.id, start_pos[0],start_pos[1],start_pos[2], player.color_player, player.name.encode('utf-8'))
         for player_spawn in self.players.values():
             self.socket.sendto(spawn_player.getData(), player_spawn.address)
-            spawn_player2 = Packet(False, self.sender, "=BIfffB{}s".format(len(player_spawn.name)), COMMAND_SPAWN_PLAYER, player_spawn.id, player_spawn.x, player_spawn.y, player_spawn.z, player_spawn.color_player, player_spawn.name.encode())
+            spawn_player2 = Packet(False, self.sender, "=BIfffB{}s".format(len(player_spawn.name)), COMMAND_SPAWN_PLAYER, player_spawn.id, player_spawn.x, player_spawn.y, player_spawn.z, player_spawn.color_player, player_spawn.name.encode('utf-8'))
             self.socket.sendto(spawn_player2.getData(), self.sender)
 
         self.players[self.sender] = player
@@ -348,11 +361,10 @@ class GameServer:
         print("Alive from {}".format(player.name))
 
 
-game_server = GameServer('127.0.0.1', 9999)
-#game_server = GameServer('192.168.1.220', 9999)
+#game_server = GameServer('127.0.0.1', 9999)
+game_server = GameServer('192.168.1.220', 9999)
 #game_server = GameServer('192.168.3.194', 9999)
 #game_server = GameServer('192.168.20.80', 9999)
 
 while True:
     game_server.tick()
-    game_server.tick_server()
