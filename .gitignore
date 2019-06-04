@@ -35,3 +35,7 @@ sysinfo.txt
 *.apk
 *.unitypackage
 *.log
+
+# PuCache
+__pycache__/
+
