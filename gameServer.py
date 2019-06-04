@@ -128,6 +128,7 @@ class GameServer:
 
         self.next_wait -= after - before
         self.deltaTime = after - before
+
         if self.socket not in rlist or self.next_wait <= 0:
             self.tick_players(time.perf_counter())
             self.tick_bomb()
@@ -347,26 +348,10 @@ class GameServer:
         print("Alive from {}".format(player.name))
 
 
-
-    #def spawn_obj(self, packet_info):
-    def deltaTimeFunc(self):
-        tick_server = time.perf_counter()
-        last_time = time.perf_counter()
-        if tick_server - last_time >= 1000:
-            last_time = tick_server
-        
-        self.deltaTime = ((tick_server - last_time) / 1000.0)
-
-        
-
-
-        
-
-
-#game_server = GameServer('127.0.0.1', 9999)
+game_server = GameServer('127.0.0.1', 9999)
 #game_server = GameServer('192.168.1.220', 9999)
 #game_server = GameServer('192.168.3.194', 9999)
-game_server = GameServer('192.168.20.80', 9999)
+#game_server = GameServer('192.168.20.80', 9999)
 
 while True:
     game_server.tick()
