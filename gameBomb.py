@@ -34,7 +34,7 @@ class GameBomb(GameObject.GameObject):
             self.dead = True
             timer_packet = Packet(False, self.address, "=BIf",6, super().id, self.timer_dead)
             self._server.send_all_queue.append(timer_packet)
-            self._server.bombs_explosions[super().id] = gameExplosion.GameExplosion(self.x, self.y, self.z, self.radius)
+            self._server.bombs_explosions[super().id] = gameExplosion.GameExplosion(self.x, self.y, self.z, self.radius, self.address)
         else:
             timer_packet = Packet(False, self.address, "=BIf",6, super().id, self.timer_dead)
             self._server.send_all_queue.append(timer_packet)

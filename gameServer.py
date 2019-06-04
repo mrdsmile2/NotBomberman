@@ -9,6 +9,7 @@ import os
 from gamePlayer import GamePlayer
 from gameBomb import GameBomb
 from gamePacket import Packet
+from gameExplosion import GameExplosion
 from ServerCollisionsDetection.CollisionMng import CollisionMng
 
 COMMAND_JOIN = 0
@@ -51,7 +52,7 @@ class GameServer:
         self.commands_table[COMMAND_SEND_VELOCITY] = self.send_velocity
         self.commands_table[COMMAND_ALIVE] = self.alive
         self.players = {}
-        self.bombs = []
+        self.bombs = {}
         self.bombs_explosions = {}
         self.next_wait = HZ
         self.send_all_queue = []
@@ -65,6 +66,7 @@ class GameServer:
         self.delete_packet_arrived = []
         GameBomb.server = self
         GamePlayer.server = self
+        GameExplosion.server = self
         print('Server started!')
 
     def ClearDeadPlayer(self, who):
@@ -107,32 +109,32 @@ class GameServer:
         if len(self.players) < self.max_players:
             return
 
-        self.timer_game -= self.deltaTime / 2
+        self.timer_game -= self.deltaTime
         if self.timer_game <= 0:
             print("Game finishied")
 
     def tick_bomb(self):
         dead_bombs = []
         dead_explosion_bomb = []
-        for bomb in self.bombs:
+        for owner, bomb in self.bombs.items():
             if bomb.dead == True:
-                dead_bombs.append(bomb)
+                dead_bombs.append(owner)
             else:
-                bomb.tick(self.deltaTime/2)
+                bomb.tick(self.deltaTime)
 
-        for dead_bomb in dead_bombs:
-            if dead_bomb in self.bombs:
-                self.bombs.remove(dead_bomb)
+        for owner_bomb in dead_bombs:
+            del(self.bombs[owner_bomb])
+            print("Remove Bomb from bombs")
 
         for id_bomb, explosion_bomb in self.bombs_explosions.items():
-            explosion_bomb.tick(self.deltaTime/2)
+            explosion_bomb.tick(self.deltaTime)
             if explosion_bomb.is_alive == False:
                 dead_explosion_bomb.append(id_bomb)
             print("Tick Explosion Bomb {}".format(id_bomb))
 
         for dead_bomb_explosion_id in dead_explosion_bomb:
-            if dead_bomb_explosion_id in self.bombs_explosions:
-                del(self.bombs_explosions[dead_bomb_explosion_id])
+            del(self.bombs_explosions[dead_bomb_explosion_id])
+            print("Remove bombs explosion")
             
 
     def tick(self):
@@ -200,9 +202,8 @@ class GameServer:
 
         #Delete packet_arrived
         for old_client_idPacket in self.delete_packet_arrived:
-            if old_client_idPacket in self.packet_arrived.keys():
-                del(self.packet_arrived[old_client_idPacket])
-                print("Old Packet deleted!")
+            del(self.packet_arrived[old_client_idPacket])
+            print("Old Packet deleted!")
             
 
 
@@ -310,9 +311,13 @@ class GameServer:
         if not self.sender in self.players:
             return
 
+        if self.sender in self.bombs.keys():
+            print("Already Spawned Bomb from {}".format(self.players[self.sender].name))
+            return
+
         _,x,y,z,id_packet = struct.unpack("=BfffI", packet_info.getData())
         bomb = GameBomb(self.sender, x, y, z)
-        self.bombs.append(bomb)
+        self.bombs[self.sender] = bomb
 
 
         ack_packet = Packet(True, self.sender, "=BI", COMMAND_ACK, id_packet)
@@ -343,9 +348,9 @@ class GameServer:
         #print("IdPacket:    {}".format(id_packet))
 
         player = self.players[self.sender]
-        player.x += x * (self.deltaTime / 2)
-        player.y += y * (self.deltaTime / 2)
-        player.z += z * (self.deltaTime / 2)
+        player.x += x * self.deltaTime
+        player.y += y * self.deltaTime
+        player.z += z * self.deltaTime
 
         ack_pos_packet = Packet(False, self.sender, "=BIfff", COMMAND_RECEIVE_POS, player.id, player.x, player.y, player.z)
 

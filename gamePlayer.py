@@ -30,9 +30,10 @@ class GamePlayer(GameObject.GameObject):
         self.malus = 0
         super().update()
 
-    def destroy(self):
+    def destroy(self, name):
         super().destroy()
-        die_packet = Packet(False, self.address, "=BI", 7, super().id)
+        len_name = len(name)
+        die_packet = Packet(False, self.address, "=BI{}s".format(len_name), 7, super().id, name.encode('utf-8'))
         self._server.send_all_queue.append(die_packet)
         self.is_alive = False
 		#use this when player die
