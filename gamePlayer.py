@@ -2,7 +2,11 @@ import time
 import numpy
 import GameObject
 
+from gamePacket import Packet
+
 class GamePlayer(GameObject.GameObject):
+
+    server = None
 
     def __init__(self, name, address, x, y, z):
         super().__init__(x, y, z)
@@ -16,10 +20,19 @@ class GamePlayer(GameObject.GameObject):
         self.send_queue = []
         self.color_player = -1
         self.start_pos = [x,y,z]
-        self.set_collider_rect(0.4,0.4, None)
+        self.set_collider_rect(0.5,0.5, None) #if there are problem, set 0.4 0.4
+        self._server = GamePlayer.server
+        self.is_alive = True
         
 
     def tick(self):
         #print("{} ticked".format(self.name))
         self.malus = 0
         super().update()
+
+    def destroy(self):
+        super().destroy()
+        die_packet = Packet(False, self.address, "=BI", 7, super().id)
+        self._server.send_all_queue.append(die_packet)
+        self.is_alive = False
+		#use this when player die
