@@ -152,6 +152,9 @@ class GameServer:
             self.tick_server()
             self.next_wait = HZ
 
+        after2 = time.perf_counter()
+        self.deltaTime = after2 - before
+
         if self.socket not in rlist:
             return
 
