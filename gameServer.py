@@ -23,6 +23,7 @@ COMMAND_PLAYER_DIE = 7
 COMMAND_JOIN_ACK = 8
 COMMAND_ACK = 9
 COMMAND_ALIVE = 10
+#COMMAND_PING = 11
 
 COLOR_BLU = 0
 COLOR_ORANGE = 1
@@ -143,17 +144,18 @@ class GameServer:
         after = time.perf_counter()
 
         self.next_wait -= after - before
-        self.deltaTime = after - before
+        #self.deltaTime = after - before
 
         if self.socket not in rlist or self.next_wait <= 0:
+            #ping_packet = Packet(False, self.address, "=Bf", COMMAND_PING, time.perf_counter())
+            #self.send_all_queue.append(ping_packet)
             self.tick_players(time.perf_counter())
             self.tick_bomb()
             CollisionMng.update()
             self.tick_server()
             self.next_wait = HZ
-
-        after2 = time.perf_counter()
-        self.deltaTime = after2 - before
+            after2 = time.perf_counter()
+            self.deltaTime = after2 - before
 
         if self.socket not in rlist:
             return
@@ -270,7 +272,6 @@ class GameServer:
 
         #check multiple join
         if self.sender in self.players:
-            print("Multiple Join {}".format(self.sender))
             return
 
         len_name = packet_info.getData()[1]
@@ -284,10 +285,10 @@ class GameServer:
         name = bytes(name).decode("utf-8")
 
         #check multiple name
-        #for player in self.players.values():
-        #    if player.name == name:
-        #        print("Double Name can't Join")
-        #        return
+        for player in self.players.values():
+            if player.name == name:
+                print("Double Name can't Join")
+                return
 
         start_pos = self.GetPositionAvaiable()
         color = self.GetColorAvaiable()
