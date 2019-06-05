@@ -313,6 +313,7 @@ class GameServer:
     def shoot_bomb(self, packet_info):
         
         if not self.sender in self.players:
+            #send only ack packet to the new packet
             return
 
         player = self.players[self.sender]
