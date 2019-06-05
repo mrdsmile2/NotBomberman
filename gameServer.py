@@ -152,7 +152,7 @@ class GameServer:
             self.tick_players(time.perf_counter())
             self.tick_bomb()
             CollisionMng.update()
-            self.tick_server()
+            #self.tick_server()
             self.next_wait = HZ
             after2 = time.perf_counter()
             self.deltaTime = after2 - before
@@ -315,11 +315,15 @@ class GameServer:
         if not self.sender in self.players:
             return
 
+        player = self.players[self.sender]
+        _,x,y,z,id_packet = struct.unpack("=BfffI", packet_info.getData())
+
         if self.sender in self.bombs.keys():
-            print("Already Spawned Bomb from {}".format(self.players[self.sender].name))
+            ack_packet = Packet(True, self.sender, "=BI", COMMAND_ACK, id_packet)
+            player.send_queue.append(ack_packet)
+            print("Already spawn send only ack")
             return
 
-        _,x,y,z,id_packet = struct.unpack("=BfffI", packet_info.getData())
         bomb = GameBomb(self.sender, x, y, z)
         self.bombs[self.sender] = bomb
 
@@ -328,8 +332,6 @@ class GameServer:
         spawn_packet = Packet(False, self.sender, "=BIfffff", COMMAND_SPAWN_BOMB, bomb.id, x, y, z, bomb.radius, bomb.timer_dead)
         self.packet_arrived[(self.sender, id_packet)] = ack_packet
 
-
-        player = self.players[self.sender]
         player.send_queue.append(ack_packet)
         player.send_queue.append(spawn_packet)
 
@@ -371,7 +373,7 @@ class GameServer:
 
 
 #game_server = GameServer('127.0.0.1', 9999)
-game_server = GameServer('192.168.1.220', 9999)
+game_server = GameServer('192.168.3.194', 9999)
 #game_server = GameServer('192.168.3.194', 9999)
 #game_server = GameServer('192.168.20.80', 9999)
 
